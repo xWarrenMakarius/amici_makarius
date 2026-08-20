@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -14,6 +14,8 @@ class GetDashboardWebViewBloc extends Bloc<GetDashboardWebViewEvent, GetDashboar
 
   final SharedPreferencesManager _sharedPreferencesManager = getIt();
 
+  WebViewController? _webViewController;
+
   GetDashboardWebViewBloc() : super(InitialState()) {
     on<DoGetDashboardWebViewEvent>(_doGetDashboardWebView);
     on<DoLogOutWebViewEvent>(_logout);
@@ -25,47 +27,84 @@ class GetDashboardWebViewBloc extends Bloc<GetDashboardWebViewEvent, GetDashboar
     try {
 
       final token = _sharedPreferencesManager.getAccessToken;
+      final baseUrl = AppConfig.instance.getBaseUrl.replaceFirst('api', '');
+      final webUser = _sharedPreferencesManager.getWebUser;
 
-      log('token: $token');
+      var isTokenSeeded = false;
 
-      final controller = WebViewController()
+      final controller = WebViewController();
+      _webViewController = controller;
+
+      controller
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setNavigationDelegate(
           NavigationDelegate(
-            onPageStarted: (url) {
-              log('WebView Page Started: $url');
-            },
-            onPageFinished: (url) {
-              log('WebView Page Finished: $url');
+            onUrlChange: (url) async {
+              if (url.url?.contains('/login') == true) {
 
-              if (url.contains('https://crim-staging.alagangamicireviewcenter.com/settings')) {
-                _sharedPreferencesManager.reset();
-                _sharedPreferencesManager.removeUser();
+                await controller.runJavaScript(
+                  'localStorage.removeItem("authToken");'
+                  'localStorage.removeItem("user");',
+                );
+
+                controller.clearCache();
+                controller.clearLocalStorage();
                 
-                emit(LogoutState());
+                add(DoLogOutWebViewEvent());
+              }
+            },
+            onProgress: (progress) {
+            },
+            onPageStarted: (url) {
+            },
+            onPageFinished: (url) async {
+
+              if (!isTokenSeeded && token.isNotEmpty) {
+                isTokenSeeded = true;
+                final webUser = _sharedPreferencesManager.getWebUser;
+
+                await controller.runJavaScript(
+                  'localStorage.setItem("authToken", ${jsonEncode(token)});'
+                  'localStorage.setItem("user", ${jsonEncode(webUser)});',
+                );
+                // await controller.reload();
+                return;
               }
             },
             onNavigationRequest: (request) {
-              log('WebView Navigation Request: ${request.url}');
 
               return NavigationDecision.navigate;
             },
             onWebResourceError: (error) {
-              log(
-                'WebView Error: '
-                '${error.errorCode} - ${error.description}',
-              );
             },
           ),
-        )
-        ..loadRequest(
-          Uri.parse(
-            '${AppConfig.instance.getBaseUrl.replaceFirst('api', '')}/',
-          ),
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
         );
+        await controller.loadHtmlString(
+        '''
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body>
+            <script>
+              localStorage.setItem(
+                "authToken",
+                ${jsonEncode(token)}
+              );
+
+              localStorage.setItem(
+                "user",
+                ${jsonEncode(webUser)}
+              );
+
+              window.location.replace("$baseUrl/");
+            </script>
+          </body>
+        </html>
+        ''',
+        baseUrl: baseUrl,
+      );
 
       emit(SuccessState(controller));
     } catch (e) {
@@ -81,8 +120,14 @@ class GetDashboardWebViewBloc extends Bloc<GetDashboardWebViewEvent, GetDashboar
     DoLogOutWebViewEvent event,
     Emitter<GetDashboardWebViewState> emit,
   ) async {
-    _sharedPreferencesManager.reset();
-    await _sharedPreferencesManager.removeUser();
+    if (_webViewController != null) {
+      await _webViewController?.runJavaScript(
+        'localStorage.removeItem("authToken");'
+        'localStorage.removeItem("user");',
+      );
+    }
+    
+    await _sharedPreferencesManager.logout();
 
     emit(LogoutState());
   }

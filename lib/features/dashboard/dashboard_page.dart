@@ -52,7 +52,9 @@ class _DashboardPageState extends State<DashboardPage> {
               statusBarIconBrightness: Brightness.dark
             ),
             child: Material(
-              child: WebViewWidget(controller: state.controller),
+              child: SafeArea(
+                bottom: false,
+                child: WebViewWidget(controller: state.controller)),
             ),
           );
         } else if (state is ErrorState) {
