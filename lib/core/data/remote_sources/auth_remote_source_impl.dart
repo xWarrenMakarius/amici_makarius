@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import '../../../di/_dependencies.dart';
+import '../../../di/shared_preferences_manager.dart';
 import '../../resources/api_endpoints.dart';
 import '../../domain/service/api_service.dart';
 import '../../utils/enums/http_method.dart';
@@ -18,6 +22,17 @@ class AuthRemoteSourceImpl extends ApiService implements AuthRemoteSource  {
       endpoint: ApiEndpoints.login,
       body: body
     );
+    
+    final user = response['user'];
+
+
+    if (user != null) {
+      await getIt<SharedPreferencesManager>().setWebUser(
+        jsonEncode(user),
+      );
+    }
+
+    
     
     return UserResponseModel.fromJson(response);
   }

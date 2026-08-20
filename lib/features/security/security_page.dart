@@ -53,7 +53,7 @@ class _SecurityPageState extends State<SecurityPage> {
       );
     }
 
-    if (!_isBlocked) {
+    if (_isBlocked) {
       return const Scaffold(
         body: Center(
           child: Text(

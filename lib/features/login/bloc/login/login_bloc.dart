@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/domain/entities/user_entity.dart';
@@ -55,9 +57,12 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         deviceFingerPrint: 'fcb31ae555db9418eb6f228911dd2d61',
       );
 
-      _sharedPreferencesManager.setLoggedIn(true);
-      _sharedPreferencesManager.setAccessToken(data.accessToken);
-      _sharedPreferencesManager.setUser(data.user);
+      await _sharedPreferencesManager.setLoggedIn(true);
+      await _sharedPreferencesManager.setAccessToken(data.accessToken);
+      await _sharedPreferencesManager.setUser(data.user);
+      await _sharedPreferencesManager.setWebUser(
+        jsonEncode(_sharedPreferencesManager.getWebUser),
+      );
 
       emit(SuccessState(data.user));
     } catch (e) {

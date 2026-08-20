@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/data/models/features_model/features_model.dart';
-import '../core/domain/entities/features_entity.dart';
 import '../core/domain/entities/user_entity.dart';
 import '../core/resources/keys.dart';
 
@@ -18,6 +17,7 @@ class SharedPreferencesManager {
   static const _isLoggedInKey = "is_logged_in_key";
   static const _deviceIdKey = 'device_id_key';
   static const _accessTokenKey = 'access_token_key';
+  static const _webUserKey = 'web_user_key';
 
   static Future<SharedPreferencesManager> getInstance() async {
     if (_instance == null) {
@@ -90,13 +90,24 @@ class SharedPreferencesManager {
 
   UserEntity? getUser() {
     final id = _prefs.getInt(Keys.id);
+    final featuresJson = _prefs.getString(Keys.features);
+    final batchTagsJson = _prefs.getString(Keys.batchTags);
 
     if (id == null) {
       return null;
     }
 
-    final featuresJson = _prefs.getString(Keys.features);
-    final batchTagsJson = _prefs.getString(Keys.batchTags);
+    final features = featuresJson != null
+        ? FeaturesModel.fromJson(
+            jsonDecode(featuresJson) as Map<String, dynamic>,
+          ).toEntity()
+        : const FeaturesModel(
+            specialFinalCoaching: false,
+          ).toEntity();
+
+    final batchTags = batchTagsJson != null
+        ? List<dynamic>.from(jsonDecode(batchTagsJson))
+        : <dynamic>[];
 
     return UserEntity(
       id: id,
@@ -132,7 +143,7 @@ class SharedPreferencesManager {
       approvedAt: _prefs.getString(Keys.approvedAt) ?? '',
       lastLogin: _prefs.getString(Keys.lastLogin) ?? '',
       takenDiagnostics: _prefs.getInt(Keys.takenDiagnostics) ?? 0,
-      features: FeaturesModel.fromJson(jsonDecode(featuresJson ?? '') as Map<String, dynamic>).toEntity(),
+      features: features,
       createdBy: _prefs.getInt(Keys.createdBy) ?? 0,
       updatedBy: _prefs.getInt(Keys.updatedBy) ?? 0,
       createdAt: _prefs.getString(Keys.createdAt) ?? '',
@@ -146,8 +157,16 @@ class SharedPreferencesManager {
       fullName: _prefs.getString(Keys.fullName) ?? '',
       hasDefaultPassword: _prefs.getBool(Keys.hasDefaultPassword) ?? false,
       isBatchAccessAllowed: _prefs.getBool(Keys.isBatchAccessAllowed) ?? false,
-      batchTags:  List<dynamic>.from(jsonDecode(batchTagsJson ?? ''))
+      batchTags: batchTags,
     );
+  }
+
+  Future<void> setWebUser(String value) async {
+    await _prefs.setString(_webUserKey, value);
+  }
+
+  String get getWebUser {
+    return _prefs.getString(_webUserKey) ?? '';
   }
 
   Future<void> removeUser() async {
@@ -201,7 +220,9 @@ class SharedPreferencesManager {
     await _prefs.remove(Keys.batchTags);
   }
 
-  void reset() {
-    _prefs.clear();
+  Future<void> logout() async {
+    await removeUser();
+    await _prefs.remove(_accessTokenKey);
+    await _prefs.setBool(_isLoggedInKey, false);
   }
 }
