@@ -6,7 +6,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/resources/app_routes.dart';
 import '../../core/resources/colors.dart';
-import '../../core/resources/dimensions.dart';
 import 'bloc/get_dashboard_webview/get_dashboard_webview_bloc.dart';
 
 class DashboardPage extends StatefulWidget {

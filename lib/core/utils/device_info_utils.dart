@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../di/shared_preferences_manager.dart';
 import '../resources/keys.dart';
 import '../resources/strings.dart';
 
