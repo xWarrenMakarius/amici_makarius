@@ -85,13 +85,13 @@ flutter:
 
 
 splash_master:
-color: '#0C0C0C'
-image: 'assets/png/logo.png'
+color: '#FFFFFF'
+image: 'assets/png/arc.png'
 ios_content_mode: 'center'
 android_gravity: 'center'
 android_12_and_above:
-  color: '#0C0C0C'
-  image: 'assets/png/splash_logo.png'
+  color: '#FFFFFF'
+  image: 'assets/png/arc.png'
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
